@@ -23,11 +23,11 @@ class Client:
     Funkcja do tworzenia kontekstu (dokładnie to samo co w serwerze)
     """
     def create_context(self):
-        self.context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile='certs/server.crt')
+        self.context = ssl.create_default_context()
         self.context.load_cert_chain(certfile=self.client_cert_location, keyfile=self.client_key_location)
 
     """
-    Funkcja do łączenia i komunikowania się z serwerem
+    Funkcja do łączenia, komunikowania się z serwerem i grania w grę według ustalonego protokołu
     """
     def connect_to_server(self):
         self.create_context()
@@ -43,14 +43,38 @@ class Client:
 
         print(f'{greeting}')
 
+        initial_message_from_server = self.client_connection.recv(4096).decode('utf-8')
+
+        if initial_message_from_server == f'NEP':
+            print('Please wait for other participants to join...')
+
+            _ = self.client_connection.recv(4096).decode('utf-8')
+
+        print('We can start the game now...')
+
         while True:
-            message_from_client = str(input(f'Your message: >'))
+            time_message_from_server = self.client_connection.recv(4096).decode('utf-8')
+            print(f'{time_message_from_server}')
 
-            self.client_connection.send(message_from_client.encode())
+            question_from_client = str(input(f'Type in your question: >'))
 
-            response = self.client_connection.recv(4096).decode('utf-8')
+            self.client_connection.sendall(question_from_client.encode())
 
-            print(f'{response}')
+            answer_time_from_server = self.client_connection.recv(4096).decode('utf-8')
+
+            print(f'Server: {answer_time_from_server}')
+
+            question = self.client_connection.recv(4096).decode('utf-8')
+
+            print(question)
+
+            user_answer = input(f'Type in your answer (0/1):> ')
+
+            self.client_connection.sendall(user_answer.encode())
+
+            group_answer_from_server = self.client_connection.recv(4096).decode('utf-8')
+
+            print(group_answer_from_server)
 
     """
     Funkcja (może zniknie) do wysyłania wiadomości do serwera
@@ -64,9 +88,11 @@ class Client:
     def receive_message_from_sever(self):
         return self.client_connection.recv(4096).decode('utf-8')
 
+
 #testy
 if __name__ == "__main__":
-    client = Client('127.0.0.1', 8082, 'game.com', 'certs/client.key', 'certs/client.crt')
+    client = Client('127.0.0.1', 8082, 'BW CA Ltd', 'certificates/participant1.key',
+                    'certificates/participant1.crt')
 
     client.connect_to_server()
 
