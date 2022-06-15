@@ -144,12 +144,3 @@ if __name__ == "__main__":
     print(f'Server is staring...')
 
     server.serve()
-
-# message_from_client = client_connection.recv(4096).decode('utf-8')
-
-# reply = 'Servers reply: Tomato !' + message_from_client
-
-# if not message_from_client:
-#    break
-
-# client_connection.sendall(reply.encode())
