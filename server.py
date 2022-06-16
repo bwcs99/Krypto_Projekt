@@ -1,8 +1,9 @@
 import socket
 import ssl
-import threading
 import time
 import random
+from schnorr_scheme import SchnorrScheme
+from zp_group import ZpGroup
 
 
 class Server:
@@ -27,6 +28,7 @@ class Server:
         self.questions_queue = []
 
         self.users_answers = []
+        self.users_keys = []
 
     """
     Funkcja do tworzenia kontekstu SSL - potrzebne jeśli chcemy mieć połączenie TLS
@@ -46,12 +48,12 @@ class Server:
         client_connection.send(initial_message)
 
         if len(self.active_connections) != self.number_of_expected_participants:
-            client_connection.sendall('NEP'.encode())
+            client_connection.sendall('NEP'.encode('utf-8'))
 
         while len(self.active_connections) != self.number_of_expected_participants:
             pass
 
-        client_connection.send('EP'.encode())
+        client_connection.send('EP'.encode('utf-8'))
 
         while True:
             question_from_client = client_connection.recv(4096).decode('utf-8')
@@ -62,8 +64,16 @@ class Server:
     Funkcja uruchamiająca serwer i implementująca ustalony protokół
     """
 
-    def serve(self):
-        initial_message = 'Hello to game server !'.encode()
+    def serve(self, nq):
+        initial_message = 'Hello to game server !'.encode('utf-8')
+
+        # ustalenie grupy
+        game_group = ZpGroup()
+        game_group.generate_zp_group(nq)
+        group_info = (game_group.get_zp_group_generator(), *game_group.get_primes())
+
+        # podpis
+        signature_scheme = SchnorrScheme(game_group)
 
         self.number_of_expected_participants = int(input(f'Give number of participants: '))
 
@@ -80,18 +90,39 @@ class Server:
             new_connection, client_address = self.bind_socket.accept()
 
             print("Client connected: {}:{}".format(client_address[0], client_address[1]))
-
             new_connection = self.context.wrap_socket(new_connection, server_side=True)
 
-            new_connection.send(initial_message)
+            # tu powinniśmy wysłać klientowi (g,p,q)
+            group_message = ",".join([str(i) for i in iter(group_info)])
+            new_connection.send(group_message.encode('utf-8'))
 
-            self.active_connections.append(new_connection)
+            # tu otrzymujemy z powrotem pare klucz, podpis
+            signature_message = new_connection.recv(4096).decode('utf-8')
+            public_key, u, c, z = (int(j) for j in iter(signature_message.split(',')))
+            signature = (u, c, z)
+
+            # weryfikujemy podpis
+            if signature_scheme.verify(public_key, signature) == 0:
+                # jeśli weryfikacja się nie powiodła wysyłamy 0
+                new_connection.send("0".encode('utf-8'))
+            else:
+                # jeśli się powiodła, nadajemy id, wysyłamy id, wysylamy powitanie, dodajemy połączenie do połączeń
+                # klucz dodajemy do kluczy
+                new_connection.send("1".encode('utf-8'))
+                client_id = str(len(self.active_connections))
+                new_connection.send(client_id.encode('utf-8'))
+                new_connection.send(initial_message)
+                self.active_connections.append(new_connection)
+                self.users_keys.append(public_key)
 
             if len(self.active_connections) != self.number_of_expected_participants:
-                new_connection.sendall('NEP'.encode())
+                new_connection.sendall('NEP'.encode('utf-8'))
 
         for conn in self.active_connections:
-            conn.sendall(f'EP'.encode())
+            # każdemu graczowi wysyłamy listę kluczy publicznych pozostałych graczy
+            conn.sendall(f'EP'.encode('utf-8'))
+            keys_parsed = ",".join([str(k) for k in self.users_keys])
+            conn.sendall(keys_parsed.encode('utf-8'))
 
         while len(self.active_connections) > 0:
 
@@ -107,7 +138,8 @@ class Server:
 
             print(f'questions from clients: {self.questions_queue}')
 
-            randomly_selected_question_from_client = self.questions_queue[random.randint(0, len(self.questions_queue) - 1)]
+            randomly_selected_question_from_client = self.questions_queue[
+                random.randint(0, len(self.questions_queue) - 1)]
 
             self.questions_queue.clear()
 
@@ -121,26 +153,38 @@ class Server:
             time.sleep(15)
 
             for conn in self.active_connections:
-                connection_user_answer = int(conn.recv(4096).decode('utf-8'))
 
-                self.users_answers.append(connection_user_answer)
+                answer = conn.recv(4096)
+                answer = answer.decode('utf-8').split(',')
+                user_answer = float(answer[0])
+                exponent_pub_key = int(answer[1])
+                u = int(answer[2])
+                c = int(answer[3])
+                z = int(answer[4])
 
-            group_answer = 0
+                signature = (u, c, z)
+                verification_result = signature_scheme.verify(exponent_pub_key, signature)
 
-            if 1 in self.users_answers:
-                group_answer = 1
+                # serwer weryfikuje każdą wiadomość, jeśli jest okej dodaje do tablicy odpowiedzi
 
-            self.users_answers.clear()
+                if verification_result == 0:
+                    conn.send("0".encode())
+                else:
+                    conn.send("1".encode())
+                    self.users_answers.append(user_answer)
 
+            parsed_answers = ','.join([str(a) for a in self.users_answers])
             for conn in self.active_connections:
-                conn.sendall(f'Group answer: {group_answer}'.encode())
+                conn.sendall(parsed_answers.encode('utf-8'))
+            self.users_answers = []
 
             time.sleep(5)
 
 
 # testy
 if __name__ == "__main__":
-    server = Server('127.0.0.1', 8082, 'certificates/server_key.key', 'certificates/server_cert.crt')
+    server = Server('192.168.0.15', 8083, 'certificates/server_key.key', 'certificates/server_cert.crt')
     print(f'Server is staring...')
 
-    server.serve()
+    server.serve(4)
+

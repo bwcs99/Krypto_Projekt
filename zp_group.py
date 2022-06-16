@@ -3,23 +3,39 @@ from random import randint
 
 
 class ZpGroup:
+    '''
+    Klasa grupy Z_p, gdzie p = 2q + 1; p,q - pierwsze.
+    '''
 
-    """
-    Klasa reprezentująca grupę Z_p, gdzie p jest liczbą pierwszą postaci p = 2q + 1 (q jest pierwsza).
-    """
-    def __init__(self, nq):
-        self.nq = nq
+    def __init__(self, g=None, p=None, q=None):
+        '''
+        Rozważamy dwa przypadki:
 
-        self.p = None
-        self.q = None
+        - odtworzenie grupy o znanych p,q,g,
 
-        self.zp_group = None
-        self.group_generator = None
+        - utworzenie grupy 'od zera', wraz z generowaniem p,q i g.
 
-    """
-    Funkcja do obliczania rzędu elementu grupy Z_p
-    """
+        :param g: generator grupy
+        :param p: liczba pierwsza
+        :param q: liczba pierwsza
+        '''
+        if (p is not None) and (q is not None):
+            self.p = p
+            self.q = q
+            if (g is not None):
+                self.group_generator = g
+            else:
+                self.group_generator = randint(int(p / 2), p - 1)
+        else:
+            self.p = None
+            self.q = None
+            self.group_generator = None
+
     def compute_element_order(self, element):
+        """
+        :param element: element grupy Z_p
+        :return: rząd elementu w grupie Z_p
+        """
         order = 1
 
         while int(pow(element, order, self.p)) != 1:
@@ -27,70 +43,57 @@ class ZpGroup:
 
         return order
 
-    """
-    Funkcja do generowania grupy Z_p i wybierania generatora
-    """
-    def generate_zp_group(self):
-        q = randprime(2 ** self.nq, 2 ** (self.nq + 1))
+    def compute_exponent(self, element):
+        """
+        :param element: element grupy
+        :return: potęga, do jakiej trzeba podnieść generator grupy,by uzyskać dany element
+        """
+        g = self.group_generator
+        p = self.p
+
+        exp = 1
+        while element != ((g ** exp) % p):
+            exp += 1
+        return exp
+
+    def generate_zp_group(self, nq):
+        """
+
+        Generowanie grupy (p,q,g) w przypadku, gdy p,q,g nie były dane w konstruktorze.
+
+        :param nq: parametr określający rząd wielkości q
+        """
+        q = randprime(2 ** nq, 2 ** (nq + 1))
         p = 2 * q + 1
 
         while not isprime(p):
-            q = randprime(2 ** self.nq, 2 ** (self.nq + 1))
+            q = randprime(2 ** nq, 2 ** (nq + 1))
             p = 2 * q + 1
 
         self.p = p
+        self.q = q
 
-        self.group_generator = randint(int(p / 2), p - 1)
-        self.zp_group = {i for i in range(1, p)}
+        g = 2
+        while self.compute_element_order(g) != q:
+            r = randint(2, 2 * q - 1)
+            g = r ** 2 % p
 
-    """
-    Funkcja do generowania grupy Z_q z dodawaniem jako działanie (q jest pierwsze)
-    """
-    def generate_zq_group(self):
-        return {i for i in range(1, self.q)}
+        self.group_generator = g
 
-    """
-    Funkcja pomocnicza - zwraca używane liczby pierwsze p i q
-    """
     def get_primes(self):
+        """
+        :return: p,q grupy Z_p
+        """
         return self.p, self.q
 
-    """
-    Funkcja do generowania podgrup dla danego elementu grupy
-    """
-    def generate_subgroup(self, element):
-        element_order = self.compute_element_order(element)
-
-        return {int(pow(element, i, self.p)) for i in range(1, element_order + 1)}
-
-    """
-    Funkcja zwracająca generator grupy
-    """
     def get_zp_group_generator(self):
+        """
+        :return: g - generator grupy Z_p
+        """
         return self.group_generator
 
-    """
-    Funkcja zwracająca grupę Z_p
-    """
-    def get_zp_group(self):
-        return self.zp_group
-
-
-# testy
-if __name__ == "__main__":
-    zp_class = ZpGroup(15)
-
-    zp_class.generate_zp_group()
-
-    generator = zp_class.get_zp_group_generator()
-    group = zp_class.get_zp_group()
-
-    generator_order = zp_class.compute_element_order(generator)
-
-    subgroup = zp_class.generate_subgroup(generator)
-
-    print(f'Generator: {generator}')
-    print(f'p : {zp_class.p}')
-    print(f'Generator order: {generator_order}')
-    print(f'Subgroup cardinality: {len(subgroup)}')
-    print(f'Subgroup: {subgroup}')
+    def get_random_exponent(self):
+        """
+        :return: losowy wykładnik - element grupy Z_q
+        """
+        return randint(1, self.q)
