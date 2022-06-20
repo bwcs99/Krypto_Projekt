@@ -1,9 +1,6 @@
-from PyQt5.QtCore import Qt, QThread
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QColor
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QHBoxLayout, QComboBox
-import sys
-from client import Client
-from multiprocessing import Queue
+from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QHBoxLayout, QComboBox
 
 
 class GameWindow(QWidget):
@@ -24,7 +21,7 @@ class GameWindow(QWidget):
         question_place_layout.addWidget(question_label)
         question_place_layout.addWidget(self.question_field)
 
-        self.possible_answers = [f'0', f'1']
+        self.possible_answers = [f'No', f'Yes']
 
         answer_label = QLabel(f'Your answer: ')
 
@@ -39,8 +36,8 @@ class GameWindow(QWidget):
         self.question_field.setFixedWidth(500)
         self.question_field.setFixedHeight(30)
 
-        self.server_messages_field = QTextEdit()
-        self.server_messages_field.setReadOnly(True)
+        self.messages_field = QTextEdit()
+        self.messages_field.setReadOnly(True)
 
         self.submit_button = QPushButton(f'Submit')
         self.submit_button.clicked.connect(self.serve_submit_question_request)
@@ -60,10 +57,10 @@ class GameWindow(QWidget):
 
         window_layout.addSpacing(10)
 
-        server_messages_label = QLabel(f'Messages from server: ')
-        window_layout.addWidget(server_messages_label)
+        messages_label = QLabel(f'Messages: ')
+        window_layout.addWidget(messages_label)
 
-        window_layout.addWidget(self.server_messages_field)
+        window_layout.addWidget(self.messages_field)
 
         self.setLayout(window_layout)
 
@@ -73,38 +70,17 @@ class GameWindow(QWidget):
 
     def serve_submit_question_request(self):
         question_from_user = self.question_field.toPlainText()
-        self.client_object.append_to_data_queue(question_from_user)
+        self.client_object.append_to_questions_queue(question_from_user)
 
     def serve_submit_answer_request(self, idx):
-        user_answer = int(self.possible_answers[idx])
-        self.client_object.append_to_data_queue(user_answer)
+        if idx == 0:
+            user_answer = 0
+        else:
+            user_answer = 1
 
-    def display_message_from_server(self, message_from_server, text_color_hex):
-        self.server_messages_field.setTextColor(QColor(text_color_hex))
-        self.server_messages_field.append(f'> {message_from_server}')
+        self.client_object.append_to_answers_queue(user_answer)
+
+    def display_message(self, message_from_server, text_color_hex):
+        self.messages_field.setTextColor(QColor(text_color_hex))
+        self.messages_field.append(f'> {message_from_server}')
         self.update()
-
-
-# testy
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-
-    data_queue = Queue()
-
-    client = Client('127.0.01', 8082, 'BW CA Ltd', 'certificates/participant1.key',
-                    'certificates/participant1.crt', data_queue)
-
-    client_window = GameWindow(client)
-
-    client_thread = QThread()
-
-    client.moveToThread(client_thread)
-
-    client_thread.started.connect(client.connect_to_server)
-    client.display_message_from_server.connect(client_window.display_message_from_server)
-
-    client_thread.start()
-
-    client_window.show()
-
-    sys.exit(app.exec())

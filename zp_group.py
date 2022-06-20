@@ -10,11 +10,8 @@ class ZpGroup:
     def __init__(self, g=None, p=None, q=None):
         '''
         Rozważamy dwa przypadki:
-
         - odtworzenie grupy o znanych p,q,g,
-
         - utworzenie grupy 'od zera', wraz z generowaniem p,q i g.
-
         :param g: generator grupy
         :param p: liczba pierwsza
         :param q: liczba pierwsza
@@ -58,9 +55,7 @@ class ZpGroup:
 
     def generate_zp_group(self, nq):
         """
-
         Generowanie grupy (p,q,g) w przypadku, gdy p,q,g nie były dane w konstruktorze.
-
         :param nq: parametr określający rząd wielkości q
         """
         q = randprime(2 ** nq, 2 ** (nq + 1))
