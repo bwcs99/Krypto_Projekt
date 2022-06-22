@@ -40,18 +40,12 @@ class ZpGroup:
 
         return order
 
-    def compute_exponent(self, element):
-        """
-        :param element: element grupy
-        :return: potęga, do jakiej trzeba podnieść generator grupy,by uzyskać dany element
-        """
-        g = self.group_generator
-        p = self.p
+    def divide(self, element_1, element_2):
+        element_2_inverse = self.inverse_element(element_2)
+        return (element_1 * element_2_inverse) % self.p
 
-        exp = 1
-        while element != ((g ** exp) % p):
-            exp += 1
-        return exp
+    def inverse_element(self, element):
+        return pow(element, -1, self.p)
 
     def generate_zp_group(self, nq):
         """

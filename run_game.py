@@ -7,7 +7,7 @@ from game_window import GameWindow
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    client = Client('192.168.43.105', 8087, 'BW CA Ltd', 'certificates/participant1.key', 'certificates/participant1.crt')
+    client = Client('192.168.0.15', 8087, 'BW CA Ltd', 'certificates/participant1.key', 'certificates/participant1.crt')
 
     client_window = GameWindow(client)
 

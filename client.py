@@ -32,7 +32,6 @@ class Client(QObject):
 
         self.id = None
         self.product = None
-        self.product_exponent = None
         self.av_private_key = None
         self.av_public_key = None
 
@@ -77,14 +76,14 @@ class Client(QObject):
         parsed_keys = self.client_connection.recv(4096).decode('utf-8')
         keys = [int(k) for k in parsed_keys.split(",")]
         av_service = AVNet(game_group)
-        self.product, self.product_exponent = av_service.compute_product(self.id, keys)
+        self.product = av_service.compute_product(self.id, keys)
 
         return av_service
 
-    def publish_answer(self, signature_scheme, exponent, exponent_pub_key, public_exponent):
+    def publish_answer(self, signature_scheme, exponent, exponent_pub_key, answer):
         u, c, z = signature_scheme.sign(exponent, exponent_pub_key)
 
-        parsed_answer = f"{public_exponent},{exponent_pub_key},{u},{c},{z}"
+        parsed_answer = f"{answer},{exponent_pub_key},{u},{c},{z}"
 
         self.client_connection.sendall(parsed_answer.encode('utf-8'))
 
@@ -143,11 +142,10 @@ class Client(QObject):
 
             user_answer = int(self.answer_queue.get())
 
-            exponent, exponent_pub_key, public_exponent = av_service.generate_public_answer(self.product_exponent,
-                                                                                            user_answer,
-                                                                                            self.av_private_key)
+            exponent, answer, exponent_pub_key = av_service.generate_public_answer(self.product, user_answer,
+                                                                                   self.av_private_key)
 
-            self.publish_answer(signature_scheme, exponent, exponent_pub_key, public_exponent)
+            self.publish_answer(signature_scheme, exponent, exponent_pub_key, answer)
 
             answers = self.client_connection.recv(4096).decode('utf-8')
             answers = [float(a) for a in answers.split(",")]
@@ -161,6 +159,3 @@ class Client(QObject):
 
     def append_to_answers_queue(self, users_answer):
         self.answer_queue.put(users_answer)
-
-
-
