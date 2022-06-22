@@ -1,6 +1,7 @@
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QColor
 from PyQt5.QtWidgets import QWidget, QPushButton, QVBoxLayout, QTextEdit, QLabel, QHBoxLayout, QComboBox
+from string_resources import client_messages
 
 
 class GameWindow(QWidget):
@@ -72,6 +73,8 @@ class GameWindow(QWidget):
         question_from_user = self.question_field.toPlainText()
         self.client_object.append_to_questions_queue(question_from_user)
 
+        self.display_message(client_messages.question_submission_message, f'#ee0a9b')
+
     def serve_submit_answer_request(self, idx):
         if idx == 0:
             user_answer = 0
@@ -80,7 +83,9 @@ class GameWindow(QWidget):
 
         self.client_object.append_to_answers_queue(user_answer)
 
-    def display_message(self, message_from_server, text_color_hex):
+        self.display_message(client_messages.answer_submission_message, f'#ee0a9b')
+
+    def display_message(self, message, text_color_hex):
         self.messages_field.setTextColor(QColor(text_color_hex))
-        self.messages_field.append(f'> {message_from_server}')
+        self.messages_field.append(f'> {message}')
         self.update()

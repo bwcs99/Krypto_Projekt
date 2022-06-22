@@ -85,4 +85,4 @@ class ZpGroup:
         """
         :return: losowy wykładnik - element grupy Z_q
         """
-        return randint(1, self.q)
+        return randint(2, self.q - 1)

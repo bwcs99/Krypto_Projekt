@@ -11,3 +11,7 @@ clients_question_submit_message = f'Type in your question: >'
 clients_answer_submit_message = f'Choose your answer (Yes/No)... '
 
 group_answer_message = f'Group answer: '
+
+question_submission_message = f'You have submitted your question.'
+
+answer_submission_message = f'You have submitted your answer.'
