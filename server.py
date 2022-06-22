@@ -92,13 +92,7 @@ class Server:
         for conn in self.active_connections:
 
             answer = conn.recv(4096)
-            answer = answer.decode('utf-8').split(',')
-            user_answer = float(answer[0])
-            exponent_pub_key = int(answer[1])
-            u = int(answer[2])
-            c = int(answer[3])
-            z = int(answer[4])
-
+            user_answer, exponent_pub_key, u, c, z = (int(j) for j in iter(answer.decode('utf-8').split(',')))
             signature = (u, c, z)
             verification_result = signature_scheme.verify(exponent_pub_key, signature)
 
@@ -167,8 +161,7 @@ class Server:
 
 
 if __name__ == "__main__":
-    server = Server('127.0.0.1', 8087, 'certificates/server_key.key', 'certificates/server_cert.crt')
+    server = Server('192.168.0.15', 8087, 'certificates/server_key.key', 'certificates/server_cert.crt')
     print(f'Server is staring...')
 
     server.serve(4)
-
