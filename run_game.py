@@ -4,12 +4,11 @@ from PyQt5.QtWidgets import QApplication
 from client import Client
 from game_window import GameWindow
 
-# '192.168.43.105'
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    client = Client('192.168.43.105', 8096, 'BW CA Ltd', 'certificates/participant1.key',
+    client = Client('127.0.0.1', 8096, 'BW CA Ltd', 'certificates/participant1.key',
                     'certificates/participant1.crt')
 
     client_window = GameWindow(client)
