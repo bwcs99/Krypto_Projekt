@@ -161,7 +161,7 @@ class Server:
 
 
 if __name__ == "__main__":
-    server = Server('127.0.0.1', 8094, 'certificates/server_key.key', 'certificates/server_cert.crt')
+    server = Server('192.168.43.105', 8096, 'certificates/server_key.key', 'certificates/server_cert.crt')
     print(f'Server is staring...')
 
-    server.serve(12)
+    server.serve(9)
